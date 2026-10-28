@@ -1,0 +1,4 @@
+#!/bin/sh
+# MobileSubstrate only picks up a changed dylib after a respring.
+killall -9 SpringBoard 2>/dev/null
+exit 0
