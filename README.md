@@ -60,7 +60,7 @@ Search results carry their own coordinates: `OM|latitude|longitude|Display Name`
 ```sh
 ./build.sh          # or make
 ./build.sh clean    # or make clean
-# -> dist/OldWeather_v1.0.0_iphoneos-arm.deb
+# -> dist/OldWeather_v1.0.1_iphoneos-arm.deb
 ```
 
 The SDK defaults to `$TMPDIR/sdk/iPhoneOS3.1.3.sdk`; override with `SDK=/path/to/sdk ./build.sh`.

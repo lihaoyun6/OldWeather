@@ -98,6 +98,20 @@ static double json_double(const char *p, const char *key) {
     return q ? atof(q + strlen(pat)) : 0;
 }
 
+static void json_str(const char *p, const char *key, char *out, int cap) {
+    char pat[64];
+    const char *q;
+    int n = 0;
+    out[0] = 0;
+    if (!p) return;
+    snprintf(pat, sizeof(pat), "\"%s\":\"", key);
+    q = strstr(p, pat);
+    if (!q) return;
+    q += strlen(pat);
+    while (*q && *q != '"' && n < cap - 1) out[n++] = *q++;
+    out[n] = 0;
+}
+
 static int json_numbers(const char *p, const char *key, double *out, int max) {
     char pat[64];
     const char *q;
@@ -191,13 +205,13 @@ static int parse_geo(const char *js, GeoItem *out, int max) {
     return n;
 }
 
-static NSString *hm12(const char *iso) {
+/* The app parses these strings with [NSString intValue], which keeps only the
+ * leading hour and ignores am/pm. 24-hour "HH:MM" is therefore required, or
+ * 6:12 am and 6:12 pm both become 6 and the day/night test breaks. */
+static NSString *hm24(const char *iso) {
     const char *t = strchr(iso, 'T');
-    int h, m;
-    if (!t || strlen(t) < 6) return @"12:00 am";
-    h = (t[1] - '0') * 10 + (t[2] - '0');
-    m = (t[4] - '0') * 10 + (t[5] - '0');
-    return [NSString stringWithFormat:@"%d:%02d %@", h % 12 == 0 ? 12 : h % 12, m, h < 12 ? @"am" : @"pm"];
+    if (!t || strlen(t) < 6) return @"12:00";
+    return [NSString stringWithFormat:@"%c%c:%c%c", t[1], t[2], t[4], t[5]];
 }
 
 static int moon_index(void) {
@@ -412,7 +426,6 @@ static NSString *tag_text(NSString *body, NSString *tag) {
     double t;
     int wmo;
     NSMutableString *xml;
-    NSDateFormatter *df;
     NSString *nowStr;
 
     if (!fullId) return nil;
@@ -458,7 +471,7 @@ static NSString *tag_text(NSString *body, NSString *tag) {
 
     url = [NSURL URLWithString:[NSString stringWithFormat:
         @"http://api.open-meteo.com/v1/forecast?latitude=%.4f&longitude=%.4f"
-        @"&current=temperature_2m,weather_code"
+        @"&current=temperature_2m,weather_code,is_day"
         @"&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset"
         @"&timezone=auto&forecast_days=7", lat, lon]];
     req = [NSURLRequest requestWithURL:url
@@ -486,14 +499,16 @@ static NSString *tag_text(NSString *body, NSString *tag) {
     wmo = (int)json_double(cur, "weather_code");
     if (unitF) t = t * 9.0 / 5.0 + 32.0;
 
-    df = [[[NSDateFormatter alloc] init] autorelease];
-    [df setDateFormat:@"h:mm a"];
-    nowStr = [[df stringFromDate:[NSDate date]] lowercaseString];
+    /* Observation time must be the city's local time: the app compares it
+     * against that city's sunrise/sunset to pick the day/night background. */
     {
-        NSCalendar *cal = [NSCalendar currentCalendar];
-        NSDateComponents *dc = [cal components:NSHourCalendarUnit fromDate:[NSDate date]];
-        isDay = [dc hour] >= 6 && [dc hour] < 18;
+        char obsIso[32];
+        json_str(cur, "time", obsIso, sizeof(obsIso));
+        nowStr = hm24(obsIso);
     }
+    /* is_day is computed by Open-Meteo for the city's own timezone,
+     * not the device's local clock. */
+    isDay = (int)json_double(cur, "is_day");
 
     xml = [NSMutableString stringWithCapacity:1200];
     [xml appendString:@"<?xml version=\"1.0\" encoding=\"utf-8\"?>"];
@@ -502,7 +517,7 @@ static NSString *tag_text(NSString *body, NSString *tag) {
                       esc(fullId), esc(cityName), esc(fullId)];
     [xml appendFormat:@"<units temperature=\"%@\"/>", unitF ? @"F" : @"C"];
     [xml appendFormat:@"<astronomy sunrise=\"%@\" sunset=\"%@\" moonphase=\"%d\" moonfacevisible=\"0.5\"/>",
-                      hm12(rises[0]), hm12(sets[0]), moon_index()];
+                      hm24(rises[0]), hm24(sets[0]), moon_index()];
     [xml appendFormat:@"<condition time=\"%@\" temp=\"%d\" code=\"%d\" text=\"%s\"/>",
                       nowStr, (int)(t < 0 ? t - 0.5 : t + 0.5), yahoo_code(wmo, isDay), yahoo_text(wmo)];
 

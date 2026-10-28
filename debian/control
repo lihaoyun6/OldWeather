@@ -1,6 +1,6 @@
 Package: com.lihaoyun6.oldweather
 Name: Weather DGW for iOS 3
-Version: 1.0.0
+Version: 1.0.1
 Architecture: iphoneos-arm
 Description: Restores the stock Weather app on iPhone OS 3.x (armv6 and armv7). Fetches worldwide weather from Open-Meteo over plain HTTP and answers the app's DGW requests locally, including city search.
 Maintainer: lihaoyun6

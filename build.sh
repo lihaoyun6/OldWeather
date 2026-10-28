@@ -10,7 +10,7 @@
 set -e
 
 PKG=com.lihaoyun6.oldweather
-VER=1.0.0
+VER=1.0.1
 ARCH=iphoneos-arm
 NAME=OldWeather_v${VER}_${ARCH}.deb
 

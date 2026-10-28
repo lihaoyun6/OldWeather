@@ -67,7 +67,7 @@ iOS 3 的天气 App 通过明文 HTTP 向 `<ServiceHost>/dgw` POST 请求，宿�
 ```sh
 ./build.sh          # 或 make（转发到 build.sh）
 ./build.sh clean    # 或 make clean
-# -> dist/OldWeather_v1.0.0_iphoneos-arm.deb
+# -> dist/OldWeather_v1.0.1_iphoneos-arm.deb
 ```
 
 默认 SDK 路径 `$TMPDIR/sdk/iPhoneOS3.1.3.sdk`，可用 `SDK=/path/to/sdk ./build.sh` 覆盖。
